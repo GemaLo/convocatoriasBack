@@ -113,6 +113,30 @@ return [
             // 'encrypt' => env('DB_ENCRYPT', 'yes'),
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
+        'oracle_primary' => [
+            'driver' => 'oracle',
+            'host' => env('DB_ORACLE_PRIMARY_HOST'),
+            'port' => env('DB_ORACLE_PRIMARY_PORT'),
+            'database' => env('DB_ORACLE_PRIMARY_SID'),
+            'service_name' => env('DB_ORACLE_PRIMARY_SERVICE_NAME'),
+            'username' => env('DB_ORACLE_PRIMARY_USERNAME'),
+            'password' => env('DB_ORACLE_PRIMARY_PASSWORD'),
+            'charset' => env('DB_ORACLE_PRIMARY_CHARSET', 'AL32UTF8'),
+            'prefix' => env('DB_ORACLE_PRIMARY_PREFIX', ''),
+            'prefix_schema' => env('DB_ORACLE_PRIMARY_SCHEMA_PREFIX', ''),
+            'server_version' => env('DB_ORACLE_PRIMARY_SERVER_VERSION', '11g'),
+        ],
+        'gn' => [
+            'driver' => 'oracle',
+            'host' => env('DB_GN_HOST'),
+            'port' => env('DB_GN_PORT'),
+            'database' => env('DB_GN_DATABASE'),
+            'service_name' => env('DB_GN_SERVICE_NAME'),
+            'username' => env('DB_GN_USERNAME'),
+            'password' => env('DB_GN_PASSWORD'),
+            'charset' => env('DB_GN_CHARSET', 'utf8'),
+            'prefix' => env('DB_GN_PREFIX', ''),
+        ],
 
     ],
 
@@ -149,7 +173,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')) . '-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 

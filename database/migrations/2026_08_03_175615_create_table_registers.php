@@ -10,9 +10,14 @@ return new class extends Migration
     {
         Schema::create('registers', function (Blueprint $table) {
             $table->id('idRegister');
-            $table->string('curp', 18)->unique();
-            $table->string('curp_pdf');
-            $table->string('acta_pdf');
+            $table->string('curpMenor', 18);
+            $table->string('curpPdf');
+            $table->string('actaPdf');
+            $table->integer('edad');
+            $table->unsignedBigInteger('idCandidato');
+            $table->foreign('idCandidato')->references('idCandidato')->on('candidatos');
+            $table->unsignedBigInteger('idCall');
+            $table->foreign('idCall')->references('idCall')->on('calls');
             $table->timestamps();
         });
     }
