@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('lastName');
             $table->string('activo');
             $table->string('psw');
+            $table->string('admit')->nullable();
             $table->timestamps();
         });
     }

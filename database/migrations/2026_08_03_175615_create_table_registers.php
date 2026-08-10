@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreign('idCandidato')->references('idCandidato')->on('candidatos');
             $table->unsignedBigInteger('idCall');
             $table->foreign('idCall')->references('idCall')->on('calls');
+            $table->string('admit')->nullable();
             $table->timestamps();
         });
     }
