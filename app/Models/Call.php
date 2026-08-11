@@ -6,15 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Call extends Model
 {
+    protected $table = 'CALLS';
+    protected $primaryKey = 'idcall';
     protected $connection = 'oracle_primary';
-    protected $table = 'calls';
-    protected $primaryKey = 'idCall';
+
+    public $timestamps = true;
 
     protected $fillable = [
-        'yearCall',
-        'nameCall',
-        'dateInitialCall',
-        'dateFinalCall',
-        'activo'
+        'idcall',
+        'namecall',
+        'yearcall',
+        'dateinitialcall',
+        'datefinalcall',
+        'activo',
     ];
+
+    public static $snakeAttributes = false;
 }
