@@ -10,23 +10,25 @@ class Candidato extends Model
     use HasFactory;
 
     protected $connection = 'oracle_primary';
-    protected $table = 'CANDIDATOS';
-    protected $primaryKey = 'IDCANDIDATO';
+    protected $table = 'candidatos';
+    protected $primaryKey = 'idCandidato';
 
     protected $fillable = [
-        'NUMEMPLEADO',
-        'EMAIL',
-        'PHONE',
-        'FIRSTNAME',
-        'MIDDLENAME',
-        'LASTNAME',
-        'ACTIVO',
-        'PSW',
-        'CALL'
+        'numEmpleado',
+        'firstName',
+        'middleName',
+        'lastName',
+        'email',
+        'phone',
+        'folio',
+        'year',
+        'activo',
+        'psw',
+        'admit'
     ];
 
     public function registers()
     {
-        return $this->hasMany(Register::class, 'IDCANDIDATO', 'IDCANDIDATO');
+        return $this->hasMany(Register::class, 'idCandidato', 'idCandidato');
     }
 }

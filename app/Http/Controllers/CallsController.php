@@ -13,13 +13,13 @@ class CallsController extends Controller
     public function index()
     {
         $calls = Call::select([
-                'idcall',
-                'yearcall', 
-                'namecall',
-                'dateinitialcall',
-                'datefinalcall',
-                'activo'
-            ])
+            'idcall',
+            'yearcall',
+            'namecall',
+            'dateinitialcall',
+            'datefinalcall',
+            'activo'
+        ])
             ->orderBy('idcall', 'desc')
             ->get();
 
@@ -59,7 +59,6 @@ class CallsController extends Controller
                 'message' => 'Convocatoria registrada con éxito.',
                 'data'    => $call
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -97,7 +96,6 @@ class CallsController extends Controller
                 'message' => 'Convocatoria actualizada correctamente.',
                 'data'    => $call
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
@@ -124,7 +122,6 @@ class CallsController extends Controller
                 'message' => $newStatus === 0 ? 'Convocatoria inactivada.' : 'Convocatoria activada.',
                 'data'    => $call
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 'error',
@@ -154,7 +151,6 @@ class CallsController extends Controller
                     'activo' => $call->activo,
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

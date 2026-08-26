@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,17 +13,22 @@ class Register extends Model
     protected $primaryKey = 'idRegister';
 
     protected $fillable = [
-        'idCandidato', 
-        'idcandidato', 
+        'idCandidato',
         'idCall',
         'curpMenor',
         'edad',
         'curpPdf',
-        'actaPdf'
+        'actaPdf',
+        'admit'
     ];
 
     public function candidato()
     {
         return $this->belongsTo(Candidato::class, 'idCandidato', 'idCandidato');
+    }
+
+    public function call()
+    {
+        return $this->belongsTo(Call::class, 'idCall', 'idCall');
     }
 }

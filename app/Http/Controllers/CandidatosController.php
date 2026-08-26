@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Candidato;
+use App\Models\Call;
 use App\Models\Register;
+use App\Models\Candidato;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 
 class CandidatosController extends Controller
 {
@@ -33,72 +35,156 @@ class CandidatosController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $candidato
+            'data'    => $candidato
         ], 200);
     }
 
     public function saveRegister(Request $request)
-{
-    $idCall = $request->input('idCall');
+    {
+        $idCall = $request->input('idCall');
 
-    $convocatoria = Convocatoria::where('IDCALL', $idCall) 
-                                ->where('ACTIVA', 1)
-                                ->first();
+        $convocatoria = Call::where('idCall', $idCall)
+            ->where('activo', 1)
+            ->first();
 
-    if (!$convocatoria && !$idCall) {
-        return response()->json([
-            'success' => false,
-            'message' => 'No hay una convocatoria activa válida para registrar.'
-        ], 422);
-    }
+        if (!$convocatoria) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay una convocatoria activa válida para registrar.'
+            ], 422);
+        }
 
-    $numEmpleado = $request->input('numEmpleado') ?? $request->input('numeroEmpleado');
-    $correoUsuario = $request->input('correoC');
-    $servidor = $request->input('servidor', '@gmail.com');
+        $numEmpleado   = $request->input('numEmpleado') ?? $request->input('numeroEmpleado');
+        $correoUsuario = $request->input('email');
+        $servidor      = $request->input('servidor', '@gmail.com');
 
-    $emailFinal = !empty($correoUsuario)
-        ? $correoUsuario . $servidor
-        : "sin_correo_{$numEmpleado}@dominio.com"; 
+        $emailFinal = !empty($correoUsuario)
+            ? $correoUsuario . $servidor
+            : "sin_correo_{$numEmpleado}@dominio.com";
 
-    $candidato = Candidato::firstOrCreate(
-        ['NUMEMPLEADO' => $numEmpleado],
-        [
-            'FIRSTNAME' => $request->input('nomPersona', 'N/A'),
-            'LASTNAME'  => $request->input('appPersona', 'N/A'),
-            'EMAIL'     => $emailFinal,
-            'PHONE'     => $request->input('telefono', '0000000000'),
-            'ACTIVO'    => 1,
-            'PSW'       => Hash::make('password'),
-        ]
-    );
+        if ($request->has('menores') && is_array($request->menores)) {
 
-    if ($request->has('menores')) {
-        foreach ($request->menores as $index => $menorData) {
-            $fileCurp = $request->file("pdfCurp_{$index}");
-            $fileActa = $request->file("pdfActa_{$index}");
+            $curpsInRequest = array_filter(array_column($request->menores, 'curpMenor'));
 
-            $pathCurp = $fileCurp ? $fileCurp->store('expedientes/curps', 'public') : null;
-            $pathActa = $fileActa ? $fileActa->store('expedientes/actas', 'public') : null;
+            if (count($curpsInRequest) !== count(array_unique($curpsInRequest))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Se enviaron CURPs duplicadas dentro de la misma solicitud.'
+                ], 422);
+            }
 
-            $register = new Register();
-            $register->IDCALL      = $idCall;
-            $register->IDCANDIDATO = $candidato->IDCANDIDATO ?? $candidato->idcandidato;
-            $register->CURPMENOR   = $menorData['curpMenor'] ?? null;
-            $register->EDAD        = $menorData['edad'] ?? null;
-            $register->CURPPDF     = $pathCurp;
-            $register->ACTAPDF     = $pathActa;
-            $register->save();
+            foreach ($curpsInRequest as $curp) {
+                $existeEnEstaConvocatoria = Register::where('curpMenor', trim($curp))
+                    ->where('idCall', $idCall) 
+                    ->exists();
+
+                if ($existeEnEstaConvocatoria) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "El menor con CURP {$curp} ya fue registrado en la convocatoria actual."
+                    ], 422);
+                }
+            }
+        }
+
+        try {
+            $resultado = DB::transaction(function () use ($request, $idCall, $numEmpleado, $emailFinal) {
+
+                $currentYear = date('Y');
+                $lockKey     = "lock:folio_candidato_year_{$currentYear}";
+
+                return Cache::lock($lockKey, 10)->block(5, function () use ($request, $idCall, $numEmpleado, $emailFinal, $currentYear) {
+
+                    $candidato = Candidato::firstOrNew(['numEmpleado' => $numEmpleado]);
+
+                    $candidato->firstName  = $request->input('firstName', 'N/A');
+                    $candidato->lastName   = $request->input('lastName', 'N/A');
+                    $candidato->middleName = $request->input('middleName', 'N/A');
+                    $candidato->email      = $emailFinal;
+                    $candidato->phone      = $request->input('phone', '0000000000');
+                    $candidato->activo     = "1";
+
+                    if (!$candidato->exists || empty($candidato->folio)) {
+                        $ultimoFolio = Candidato::where('year', $currentYear)->max('folio');
+                        $nextFolio   = $ultimoFolio ? ((int)$ultimoFolio + 1) : 1;
+
+                        $candidato->folio = (string)$nextFolio;
+                        $candidato->year  = (string)$currentYear;
+                        $candidato->psw   = Hash::make('password');
+                    }
+
+                    $candidato->save();
+
+                    if (!$candidato->idCandidato && !$candidato->getKey()) {
+                        $idCandidato = DB::connection('oracle_primary')
+                            ->table('candidatos')
+                            ->where('numEmpleado', $numEmpleado)
+                            ->value('idCandidato');
+                    } else {
+                        $idCandidato = $candidato->idCandidato ?? $candidato->getKey();
+                    }
+
+                    if ($request->has('menores')) {
+                        foreach ($request->menores as $index => $menorData) {
+
+                            $fileCurp = $request->file("pdfCurp_{$index}") ?? $request->file("menores.{$index}.pdfCurp");
+                            $fileActa = $request->file("pdfActa_{$index}") ?? $request->file("menores.{$index}.pdfActa");
+
+                            $pathCurp = $fileCurp ? $fileCurp->store('expedientes/curps', 'public') : '';
+                            $pathActa = $fileActa ? $fileActa->store('expedientes/actas', 'public') : '';
+
+                            Register::create([
+                                'idCandidato' => $idCandidato, 
+                                'idCall'      => $idCall,
+                                'curpMenor'   => $menorData['curpMenor'] ?? null,
+                                'edad'        => (int)($menorData['edad'] ?? 0),
+                                'curpPdf'     => $pathCurp,
+                                'actaPdf'     => $pathActa,
+                            ]);
+                        }
+                    }
+
+                    return [
+                        'candidato' => $candidato,
+                        'folio'     => $candidato->folio,
+                        'year'      => $candidato->year
+                    ];
+                });
+            });
+
+            return response()->json([
+                'success' => true,
+                'constancia' => [
+                    'folio'       => 'REG-' . $resultado['year'] . '-' . str_pad($resultado['folio'], 5, '0', STR_PAD_LEFT),
+                    'candidato'   => trim(($resultado['candidato']->firstName ?? '') . ' ' . ($resultado['candidato']->lastName ?? '')),
+                    'numEmpleado' => $numEmpleado,
+                    'fecha'       => now()->format('Y-m-d H:i:s'),
+                ]
+            ]);
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Servidor ocupado procesando solicitudes. Por favor reintenta.'
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error("Error en saveRegister: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocurrió un error al procesar el registro: ' . $e->getMessage()
+            ], 500);
         }
     }
 
-    return response()->json([
-        'success' => true,
-        'constancia' => [
-            'folio'       => 'REG-' . time(),
-            'candidato'   => trim(($candidato->FIRSTNAME ?? '') . ' ' . ($candidato->LASTNAME ?? '')),
-            'numEmpleado' => $numEmpleado,
-            'fecha'       => now()->format('Y-m-d H:i:s'),
-        ]
-    ]);
-}
+    public function indexRegisters()
+    {
+        $registers = Register::with(['candidato', 'call'])
+            ->orderBy('idRegister', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $registers
+        ], 200);
+    }
 }

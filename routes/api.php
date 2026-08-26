@@ -27,4 +27,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/calls', [CallsController::class, 'store']);
     Route::put('/calls/{id}', [CallsController::class, 'update']);
     Route::patch('/calls/{id}/toggle-status', [CallsController::class, 'toggleStatus']);
+    Route::get('indexRegisters', [CandidatosController::class,'indexRegisters'])->name('indexRegisters');
 });
