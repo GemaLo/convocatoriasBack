@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,6 +13,9 @@ class Register extends Model
     protected $table = 'registers';
     protected $primaryKey = 'idRegister';
 
+    // Desactiva la conversión a snake_case para Eloquent
+    public static $snakeAttributes = false;
+
     protected $fillable = [
         'idCandidato',
         'idCall',
@@ -22,13 +26,14 @@ class Register extends Model
         'admit'
     ];
 
-    public function candidato()
-    {
-        return $this->belongsTo(Candidato::class, 'idCandidato', 'idCandidato');
-    }
+// En Register.php
+public function candidato()
+{
+    return $this->belongsTo(Candidato::class, 'idcandidato', 'idcandidato');
+}
 
-    public function call()
-    {
-        return $this->belongsTo(Call::class, 'idCall', 'idCall');
-    }
+public function call()
+{
+    return $this->belongsTo(Call::class, 'idcall', 'idcall');
+}
 }

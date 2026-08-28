@@ -13,22 +13,28 @@ class Candidato extends Model
     protected $table = 'candidatos';
     protected $primaryKey = 'idCandidato';
 
-    protected $fillable = [
-        'numEmpleado',
-        'firstName',
-        'middleName',
-        'lastName',
-        'email',
-        'phone',
-        'folio',
-        'year',
-        'activo',
-        'psw',
-        'admit'
-    ];
+    public static $snakeAttributes = false;
 
-    public function registers()
-    {
-        return $this->hasMany(Register::class, 'idCandidato', 'idCandidato');
-    }
+ protected $fillable = [
+    'numEmpleado',
+    'firstName',
+    'middleName',
+    'lastName',
+    'CURP',
+    'RFC',
+    'email',
+    'phone',
+    'no_unidad',
+    'unidad',
+    'folio',
+    'year',
+    'activo',
+    'psw',
+    'admit'
+];
+
+public function registers()
+{
+    return $this->hasMany(Register::class, 'idcandidato', 'idcandidato');
+}
 }

@@ -6,18 +6,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CandidatosController;
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
-
-
+// Rutas Públicas
 Route::get('/candidato', [CandidatosController::class, 'dataServ'])->name('candidato');
 Route::post('/candidato', [CandidatosController::class, 'saveRegister'])->name('candidato.save');
 Route::get('/calls/activa', [CallsController::class, 'getActiva']);
 
+// Nombre explícito 'login' para evitar excepciones de redirección en la API
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-Route::post('/login', [AuthController::class, 'login']);
-
+// Rutas Protegidas (Requieren Token Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
@@ -27,5 +24,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/calls', [CallsController::class, 'store']);
     Route::put('/calls/{id}', [CallsController::class, 'update']);
     Route::patch('/calls/{id}/toggle-status', [CallsController::class, 'toggleStatus']);
-    Route::get('indexRegisters', [CandidatosController::class,'indexRegisters'])->name('indexRegisters');
+    
+    Route::get('indexRegisters', [CandidatosController::class, 'indexRegisters'])->name('indexRegisters');
 });

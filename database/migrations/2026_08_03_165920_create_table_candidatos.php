@@ -14,7 +14,11 @@ return new class extends Migration
             $table->string('firstName');
             $table->string('middleName')->nullable();
             $table->string('lastName');
+            $table->string('curp');
+            $table->string('rfc');
             $table->string('email');
+            $table->string('no_unidad');
+            $table->string('unidad');
             $table->string('phone');
             $table->string('folio')->nullable();
             $table->string('year')->nullable();

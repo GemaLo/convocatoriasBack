@@ -75,7 +75,7 @@ class CandidatosController extends Controller
 
             foreach ($curpsInRequest as $curp) {
                 $existeEnEstaConvocatoria = Register::where('curpMenor', trim($curp))
-                    ->where('idCall', $idCall) 
+                    ->where('idCall', $idCall)
                     ->exists();
 
                 if ($existeEnEstaConvocatoria) {
@@ -100,9 +100,16 @@ class CandidatosController extends Controller
                     $candidato->firstName  = $request->input('firstName', 'N/A');
                     $candidato->lastName   = $request->input('lastName', 'N/A');
                     $candidato->middleName = $request->input('middleName', 'N/A');
-                    $candidato->email      = $emailFinal;
-                    $candidato->phone      = $request->input('phone', '0000000000');
-                    $candidato->activo     = "1";
+
+                    $candidato->CURP = $request->input('curp');
+                    $candidato->RFC  = $request->input('rfc');
+
+                    $candidato->no_unidad  = 'H00';
+                    $candidato->unidad  = 'GUARDIA NACIONAL';
+
+                    $candidato->email  = $emailFinal;
+                    $candidato->phone  = $request->input('phone', '0000000000');
+                    $candidato->activo = "1";
 
                     if (!$candidato->exists || empty($candidato->folio)) {
                         $ultimoFolio = Candidato::where('year', $currentYear)->max('folio');
@@ -134,7 +141,7 @@ class CandidatosController extends Controller
                             $pathActa = $fileActa ? $fileActa->store('expedientes/actas', 'public') : '';
 
                             Register::create([
-                                'idCandidato' => $idCandidato, 
+                                'idCandidato' => $idCandidato,
                                 'idCall'      => $idCall,
                                 'curpMenor'   => $menorData['curpMenor'] ?? null,
                                 'edad'        => (int)($menorData['edad'] ?? 0),
@@ -178,13 +185,44 @@ class CandidatosController extends Controller
 
     public function indexRegisters()
     {
-        $registers = Register::with(['candidato', 'call'])
-            ->orderBy('idRegister', 'desc')
+        $candidatos = Candidato::has('registers')
+            ->with(['registers.call'])
             ->get();
+
+        $data = $candidatos->map(function ($cand) {
+            $nombreCompleto = trim(implode(' ', array_filter([
+                $cand->firstName ?? $cand->firstname ?? '',
+                $cand->middleName ?? $cand->middlename ?? '',
+                $cand->lastName ?? $cand->lastname ?? ''
+            ])));
+
+            $ninos = $cand->registers->map(function ($reg) {
+                return [
+                    'idRegister'       => $reg->idRegister ?? $reg->idregister,
+                    'curpMenor'        => $reg->curpMenor ?? $reg->curpmenor,
+                    'edad'             => $reg->edad,
+                    'estatus'          => $reg->admit ?? 'Pendiente',
+                    'convocatoria'     => $reg->call->namecall ?? $reg->call->nameCall ?? 'N/A',
+                    'curpPdf'          => $reg->curpPdf ?? $reg->curppdf,
+                    'actaPdf'          => $reg->actaPdf ?? $reg->actapdf,
+                ];
+            });
+
+            return [
+                'idCandidato'           => $cand->idCandidato ?? $cand->idcandidato,
+                'nombre_trabajador'     => $nombreCompleto,
+                'num_empleado'          => $cand->numEmpleado ?? $cand->numempleado ?? 'N/A',
+                'curp'                   => $cand->curp ?? 'N/A',
+                'rfc'                   => $cand->rfc ?? 'N/A',
+                'folio_registro'        => $cand->folio ?? 'N/A',
+                'total_hijos'           => $ninos->count(),
+                'ninos'                 => $ninos
+            ];
+        });
 
         return response()->json([
             'status' => 'success',
-            'data'   => $registers
+            'data'   => $data
         ], 200);
     }
 }
